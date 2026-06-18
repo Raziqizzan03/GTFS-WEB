@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+
+body{
+margin:0;
+}
+
+#map{
+height:100vh;
+}
+
+#panel{
+position:absolute;
+top:10px;
+left:10px;
+z-index:1000;
+background:white;
+padding:10px;
+border-radius:5px;
+box-shadow:0 0 10px rgba(0,0,0,0.2);
+}
+
+select{
+width:300px;
+padding:5px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="panel">
+
+<select id="routeSelect">
+<option value="">Semua Rute</option>
+</select>
+
+<br><br>
+
+<select id="tripSelect">
+<option value="">Semua Trip</option>
+</select>
+
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+// =========================
+// BUAT PETA
+// =========================
+
+var map = L.map('map')
+.setView([-6.2,106.8],11);
+
+L.tileLayer(
+'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
+
+var routeLayer;
+
+// =========================
+// LOAD GEOJSON
+// =========================
+
+fetch('MergeRute.geojson')
+.then(r => r.json())
+.then(data => {
+
+window.gtfsData = data;
+
+populateRoutes(data);
+
+populateTrips("");
+
+loadRoutes("", "");
+
+});
+
+// =========================
+// ISI DROPDOWN ROUTE
+// =========================
+
+function populateRoutes(data){
+
+let select =
+document.getElementById("routeSelect");
+
+let routes = {};
+
+data.features.forEach(f=>{
+
+routes[
+f.properties.route_id
+] = f.properties.route_long_name;
+
+});
+
+Object.keys(routes)
+.sort()
+.forEach(routeId=>{
+
+let option =
+document.createElement("option");
+
+option.value = routeId;
+
+option.text =
+routeId +
+" - " +
+routes[routeId];
+
+select.appendChild(option);
+
+});
+
+}
+
+// =========================
+// ISI DROPDOWN TRIP
+// =========================
+
+function populateTrips(routeId){
+
+let tripSelect =
+document.getElementById("tripSelect");
+
+tripSelect.innerHTML =
+'<option value="">Semua Trip</option>';
+
+let trips = {};
+
+window.gtfsData.features.forEach(f=>{
+
+if(
+routeId == "" ||
+f.properties.route_id == routeId
+){
+
+trips[
+f.properties.trip_id
+] = true;
+
+}
+
+});
+
+Object.keys(trips)
+.sort()
+.forEach(tripId=>{
+
+let option =
+document.createElement("option");
+
+option.value = tripId;
+
+option.text = tripId;
+
+tripSelect.appendChild(option);
+
+});
+
+}
+
+// =========================
+// TAMPILKAN RUTE
+// =========================
+
+function loadRoutes(
+selectedRoute="",
+selectedTrip=""
+){
+
+if(routeLayer){
+map.removeLayer(routeLayer);
+}
+
+routeLayer = L.geoJSON(
+window.gtfsData,
+{
+
+filter:function(feature){
+
+if(
+selectedRoute != "" &&
+feature.properties.route_id
+!= selectedRoute
+){
+return false;
+}
+
+if(
+selectedTrip != "" &&
+feature.properties.trip_id
+!= selectedTrip
+){
+return false;
+}
+
+return true;
+
+},
+
+style:function(feature){
+
+return {
+
+color:
+"#" +
+feature.properties.route_color,
+
+weight:4
+
+};
+
+},
+
+onEachFeature:function(feature,layer){
+
+layer.bindPopup(
+
+"<b>Route :</b> " +
+feature.properties.route_id +
+
+"<br><b>Trip :</b> " +
+feature.properties.trip_id +
+
+"<br><b>Nama :</b> " +
+feature.properties.route_long_name +
+
+"<br><b>Jenis :</b> " +
+feature.properties.route_desc
+
+);
+
+}
+
+}
+
+).addTo(map);
+
+// Auto Zoom
+
+if(routeLayer.getLayers().length > 0){
+
+map.fitBounds(
+routeLayer.getBounds()
+);
+
+}
+
+}
+
+// =========================
+// EVENT ROUTE
+// =========================
+
+document
+.getElementById("routeSelect")
+.addEventListener(
+"change",
+function(){
+
+let selectedRoute =
+this.value;
+
+populateTrips(
+selectedRoute
+);
+
+document
+.getElementById("tripSelect")
+.value = "";
+
+loadRoutes(
+selectedRoute,
+""
+);
+
+}
+);
+
+// =========================
+// EVENT TRIP
+// =========================
+
+document
+.getElementById("tripSelect")
+.addEventListener(
+"change",
+function(){
+
+let selectedTrip =
+this.value;
+
+let selectedRoute =
+document
+.getElementById("routeSelect")
+.value;
+
+loadRoutes(
+selectedRoute,
+selectedTrip
+);
+
+}
+);
+
+</script>
+
+</body>
+
+</html>
