@@ -327,6 +327,12 @@ layer.getBounds()
 // TAMBAH HALTE KE PETA
 // =========================
 
+var halteIcon = L.icon({
+    iconUrl: 'halte.png',
+    iconSize: [25, 25],
+    iconAnchor: [12, 12]
+});
+ 
 function addStopsToMap(tripId){
 
 let stopFeatures =
@@ -342,13 +348,10 @@ stopFeatures,
 
 pointToLayer:function(feature,latlng){
 
-return L.circleMarker(
+return L.marker(
 latlng,
 {
-radius:5,
-color:"blue",
-fillColor:"blue",
-fillOpacity:1
+icon: halteIcon
 }
 );
 
@@ -358,17 +361,17 @@ onEachFeature:function(feature,layer){
 
 layer.bindPopup(
 
-"<b>Stop Sequence :</b> "
-+ feature.properties.stop_sequence +
+//"<b>Stop Sequence :</b> "
+//+ feature.properties.stop_sequence +
 
 "<br><b>Halte :</b> "
-+ feature.properties.stop_name +
++ feature.properties.stop_name 
 
-"<br><b>Arrival :</b> "
-+ feature.properties.arrival_time +
+//"<br><b>Arrival :</b> "
+//+ feature.properties.arrival_time +
 
-"<br><b>Departure :</b> "
-+ feature.properties.departure_time
+//"<br><b>Departure :</b> "
+//+ feature.properties.departure_time
 
 );
 
