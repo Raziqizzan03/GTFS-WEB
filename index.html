@@ -7,6 +7,8 @@
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <style>
 
 body{
@@ -33,6 +35,13 @@ width:300px;
 padding:5px;
 }
 
+button{
+width:145px;
+padding:6px;
+margin-top:5px;
+cursor:pointer;
+}
+
 </style>
 
 </head>
@@ -41,6 +50,7 @@ padding:5px;
 
 <div id="panel">
 
+
 <select id="routeSelect">
 <option value="">Semua Rute</option>
 </select>
@@ -48,14 +58,33 @@ padding:5px;
 <br><br>
 
 <select id="tripSelect">
-<option value="">Semua Trip</option>
+<option value="">Pilih Trip</option>
 </select>
+
+<br><br>
+
+<label>
+<input type="checkbox" id="showStops">
+ Tampilkan Halte
+</label>
+
+<br><br>
+
+<button id="addTrip">
+Tambah ke Peta
+</button>
+
+<button id="clearMap">
+Clear
+</button>
 
 </div>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 
@@ -67,19 +96,24 @@ var map = L.map('map')
 .setView([-6.2,106.8],11);
 
 L.tileLayer(
-'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
 {
+attribution:'© OpenStreetMap © CARTO',
 maxZoom:19
 }
 ).addTo(map);
 
-var routeLayer;
+var selectedRouteLayer =
+L.layerGroup().addTo(map);
+
+var stopLayer =
+L.layerGroup().addTo(map);
 
 // =========================
-// LOAD GEOJSON
+// LOAD GEOJSON RUTE
 // =========================
 
-fetch('MergeRute.geojson')
+fetch('MergeRute1.geojson')
 .then(r => r.json())
 .then(data => {
 
@@ -87,14 +121,34 @@ window.gtfsData = data;
 
 populateRoutes(data);
 
-populateTrips("");
+$('#routeSelect').select2({
+    width:'300px',
+    placeholder:'Cari Route'
+});
 
-loadRoutes("", "");
+populateTrips("");
 
 });
 
 // =========================
-// ISI DROPDOWN ROUTE
+// LOAD STOPS
+// =========================
+
+fetch('MergeStops.geojson')
+.then(r => r.json())
+.then(data => {
+
+window.stopData = data;
+
+console.log(
+"Jumlah halte:",
+data.features.length
+);
+
+});
+
+// =========================
+// DROPDOWN ROUTE
 // =========================
 
 function populateRoutes(data){
@@ -133,89 +187,93 @@ select.appendChild(option);
 }
 
 // =========================
-// ISI DROPDOWN TRIP
+// DROPDOWN TRIP
 // =========================
 
 function populateTrips(routeId){
 
-let tripSelect =
-document.getElementById("tripSelect");
+    if ($('#tripSelect').hasClass("select2-hidden-accessible")){
+        $('#tripSelect').select2('destroy');
+    }
 
-tripSelect.innerHTML =
-'<option value="">Semua Trip</option>';
+    let tripSelect =
+        document.getElementById("tripSelect");
 
-let trips = {};
+    tripSelect.innerHTML =
+        '<option value="">Pilih Trip</option>';
 
-window.gtfsData.features.forEach(f=>{
+    let trips = {};
 
-if(
-routeId == "" ||
-f.properties.route_id == routeId
-){
+    let filteredFeatures =
+        window.gtfsData.features.filter(
+            f =>
+            routeId === "" ||
+            f.properties.route_id == routeId
+        );
 
-trips[
-f.properties.trip_id
-] = true;
+    console.log(
+        "jumlah feature:",
+        filteredFeatures.length
+    );
 
-}
+    filteredFeatures.forEach(f=>{
 
-});
+        trips[f.properties.trip_id] =
+            f.properties.trip_short_name;
 
-Object.keys(trips)
-.sort()
-.forEach(tripId=>{
+    });
 
-let option =
-document.createElement("option");
+    Object.keys(trips)
+    .sort()
+    .forEach(tripId=>{
 
-option.value = tripId;
+        let option =
+            document.createElement("option");
 
-option.text = tripId;
+        option.value = tripId;
 
-tripSelect.appendChild(option);
+        option.text =
+            tripId +
+            " - " +
+            trips[tripId];
 
+        tripSelect.appendChild(option);
+
+    });
+
+    $('#tripSelect').select2({
+        width:'300px'
+    });
+
+    $('#routeSelect').on('change', function () {
+
+    let routeId = $(this).val();
+
+    console.log("route =", routeId);
+
+    populateTrips(routeId);
 });
 
 }
 
 // =========================
-// TAMPILKAN RUTE
+// TAMBAH RUTE KE PETA
 // =========================
 
-function loadRoutes(
-selectedRoute="",
-selectedTrip=""
-){
+function addTripToMap(tripId){
 
-if(routeLayer){
-map.removeLayer(routeLayer);
+let selectedFeatures =
+window.gtfsData.features.filter(
+f => f.properties.trip_id == tripId
+);
+
+if(selectedFeatures.length == 0){
+return;
 }
 
-routeLayer = L.geoJSON(
-window.gtfsData,
+let layer = L.geoJSON(
+selectedFeatures,
 {
-
-filter:function(feature){
-
-if(
-selectedRoute != "" &&
-feature.properties.route_id
-!= selectedRoute
-){
-return false;
-}
-
-if(
-selectedTrip != "" &&
-feature.properties.trip_id
-!= selectedTrip
-){
-return false;
-}
-
-return true;
-
-},
 
 style:function(feature){
 
@@ -225,7 +283,9 @@ color:
 "#" +
 feature.properties.route_color,
 
-weight:4
+weight:6,
+
+opacity:1
 
 };
 
@@ -253,17 +313,70 @@ feature.properties.route_desc
 
 }
 
-).addTo(map);
-
-// Auto Zoom
-
-if(routeLayer.getLayers().length > 0){
+).addTo(
+selectedRouteLayer
+);
 
 map.fitBounds(
-routeLayer.getBounds()
+layer.getBounds()
 );
 
 }
+
+// =========================
+// TAMBAH HALTE KE PETA
+// =========================
+
+function addStopsToMap(tripId){
+
+let stopFeatures =
+window.stopData.features.filter(
+f =>
+f.properties.trip_id ==
+tripId
+);
+
+L.geoJSON(
+stopFeatures,
+{
+
+pointToLayer:function(feature,latlng){
+
+return L.circleMarker(
+latlng,
+{
+radius:5,
+color:"blue",
+fillColor:"blue",
+fillOpacity:1
+}
+);
+
+},
+
+onEachFeature:function(feature,layer){
+
+layer.bindPopup(
+
+"<b>Stop Sequence :</b> "
++ feature.properties.stop_sequence +
+
+"<br><b>Halte :</b> "
++ feature.properties.stop_name +
+
+"<br><b>Arrival :</b> "
++ feature.properties.arrival_time +
+
+"<br><b>Departure :</b> "
++ feature.properties.departure_time
+
+);
+
+}
+
+}
+
+).addTo(stopLayer);
 
 }
 
@@ -271,56 +384,77 @@ routeLayer.getBounds()
 // EVENT ROUTE
 // =========================
 
-document
-.getElementById("routeSelect")
-.addEventListener(
-"change",
-function(){
 
-let selectedRoute =
-this.value;
-
-populateTrips(
-selectedRoute
-);
-
-document
-.getElementById("tripSelect")
-.value = "";
-
-loadRoutes(
-selectedRoute,
-""
-);
-
-}
-);
 
 // =========================
-// EVENT TRIP
+// EVENT TAMBAH
 // =========================
 
 document
-.getElementById("tripSelect")
+.getElementById("addTrip")
 .addEventListener(
-"change",
+"click",
 function(){
 
-let selectedTrip =
-this.value;
-
-let selectedRoute =
+let tripId =
 document
-.getElementById("routeSelect")
+.getElementById("tripSelect")
 .value;
 
-loadRoutes(
-selectedRoute,
-selectedTrip
+if(tripId==""){
+alert("Pilih trip terlebih dahulu");
+return;
+}
+
+addTripToMap(
+tripId
 );
+
+if(
+document.getElementById("showStops").checked
+){
+    addStopsToMap(
+    tripId
+    );
+}
 
 }
 );
+
+// =========================
+// EVENT CLEAR
+// =========================
+
+document
+.getElementById("clearMap")
+.addEventListener(
+"click",
+function(){
+
+selectedRouteLayer.clearLayers();
+
+stopLayer.clearLayers();
+
+}
+);
+
+// =========================
+// EVENT SHOW STOPS
+// =========================
+
+document
+.getElementById("showStops")
+.addEventListener(
+"change",
+function(){
+
+if(!this.checked){
+    stopLayer.clearLayers();
+}
+
+}
+);
+
 
 </script>
 
