@@ -361,11 +361,14 @@ onEachFeature:function(feature,layer){
 
 layer.bindPopup(
 
-//"<b>Stop Sequence :</b> "
-//+ feature.properties.stop_sequence +
+"<b>Stop Headsign :</b> "
++ feature.properties.stop_name +
+ 
+"<b>Stop Sequence :</b> "
++ feature.properties.stop_headsign  +
 
 "<br><b>Halte :</b> "
-+ feature.properties.stop_name 
++ feature.properties.stop_sequence
 
 //"<br><b>Arrival :</b> "
 //+ feature.properties.arrival_time +
