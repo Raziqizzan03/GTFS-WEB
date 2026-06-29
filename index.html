@@ -260,6 +260,23 @@ function populateTrips(routeId){
 // TAMBAH RUTE KE PETA
 // =========================
 
+ const colors = [
+    "#e41a1c",
+    "#377eb8",
+    "#4daf4a",
+    "#984ea3",
+    "#ff7f00",
+    "#ffff33",
+    "#a65628",
+    "#f781bf",
+    "#999999",
+    "#00bcd4",
+    "#8bc34a",
+    "#795548"
+];
+
+let colorIndex = 0;
+
 function addTripToMap(tripId){
 
 let selectedFeatures =
@@ -271,24 +288,18 @@ if(selectedFeatures.length == 0){
 return;
 }
 
-let layer = L.geoJSON(
-selectedFeatures,
-{
+let lineColor = colors[colorIndex % colors.length];
+colorIndex++;
 
-style:function(feature){
+let layer = L.geoJSON(selectedFeatures, {
 
-return {
+    style: function(feature){
 
-color:
-"#" +
-feature.properties.route_color,
-
-weight:6,
-
-opacity:1
-
-};
-
+        return {
+            color: lineColor,
+            weight: 6,
+            opacity: 1
+        };
 },
 
 onEachFeature:function(feature,layer){
@@ -440,6 +451,8 @@ function(){
 selectedRouteLayer.clearLayers();
 
 stopLayer.clearLayers();
+
+ colorIndex = 0;
 
 }
 );
