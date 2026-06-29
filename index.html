@@ -113,7 +113,7 @@ L.layerGroup().addTo(map);
 // LOAD GEOJSON RUTE
 // =========================
 
-fetch('MergeRuteIBIbaru1.geojson')
+fetch('data/MergeRuteIBIbaru1.geojson')
 .then(r => r.json())
 .then(data => {
 
@@ -134,7 +134,7 @@ populateTrips("");
 // LOAD STOPS
 // =========================
 
-fetch('MergeStopsIBIBaru.geojson')
+fetch('data/MergeStopsIBIBaru.geojson')
 .then(r => r.json())
 .then(data => {
 
@@ -342,7 +342,7 @@ layer.getBounds()
 // =========================
 
 var halteIcon = L.icon({
-    iconUrl: 'halte.png',
+    iconUrl: 'icon/halte.png',
     iconSize: [25, 25],
     iconAnchor: [12, 12]
 });
