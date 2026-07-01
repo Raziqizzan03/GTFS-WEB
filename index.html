@@ -135,6 +135,12 @@ var esriSat = L.tileLayer(
     attribution:'Tiles © Esri'
 });
 
+var esriStreet = L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+{
+    attribution: 'Tiles © Esri'
+});
+
 // Basemap awal
 cartoLight.addTo(map);
 
@@ -142,7 +148,8 @@ var baseMaps = {
     "Carto Light": cartoLight,
     "OpenStreetMap": osm,
     "Carto Dark": cartoDark,
-    "Esri Satellite": esriSat
+    "Esri Satellite": esriSat,
+    "Google Street": esriStreet
 };
 
 L.control.layers(baseMaps, null, {
