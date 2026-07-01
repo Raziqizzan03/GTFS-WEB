@@ -155,6 +155,28 @@ L.layerGroup().addTo(map);
 var stopLayer =
 L.layerGroup().addTo(map);
 
+
+// =========================
+// LOAD GEOJSON RUTE
+// =========================
+
+fetch('data/MergeRuteIBIbaru1.geojson')
+.then(r => r.json())
+.then(data => {
+
+window.gtfsData = data;
+
+populateRoutes(data);
+
+$('#routeSelect').select2({
+    width:'300px',
+    placeholder:'Cari Route'
+});
+
+populateTrips("");
+
+});
+
 // =========================
 // LOAD STOPS
 // =========================
