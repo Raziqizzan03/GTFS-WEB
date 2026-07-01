@@ -89,7 +89,7 @@ Tambah ke Peta
 Clear
 </button>
 
-<button id="zoomAll">
+<button id="showAll">
 Lihat Semua
 </button>
 
@@ -352,6 +352,62 @@ layer.getBounds()
 
 }
 
+
+// semua rute
+
+function addAllTrips(routeId){
+
+    let selectedFeatures =
+        window.gtfsData.features.filter(f =>
+
+            routeId == "" ||
+
+            f.properties.route_id == routeId
+
+        );
+
+    if(selectedFeatures.length == 0){
+        return;
+    }
+
+    L.geoJSON(selectedFeatures,{
+
+        style:function(feature){
+
+            return{
+                color:"#1976d2",
+                weight:5,
+                opacity:1
+            };
+
+        },
+
+        onEachFeature:function(feature,layer){
+
+            layer.bindPopup(
+
+                "<b>Route :</b> " +
+                feature.properties.route_id +
+
+                "<br><b>Trip :</b> " +
+                feature.properties.trip_id +
+
+                "<br><b>Nama :</b> " +
+                feature.properties.trip_short_name +
+
+                "<br><b>KM :</b> " +
+                feature.properties.KM_baku
+
+            );
+
+        }
+
+    }).addTo(selectedRouteLayer);
+
+    map.fitBounds(selectedRouteLayer.getBounds());
+
+}
+
 // =========================
 // TAMBAH HALTE KE PETA
 // =========================
@@ -497,20 +553,13 @@ if(!this.checked){
 // =========================
     
 document
-.getElementById("zoomAll")
-.addEventListener("click", function(){
+.getElementById("showAll")
+.addEventListener("click",function(){
 
-    let group = L.featureGroup();
+    let routeId =
+    document.getElementById("routeSelect").value;
 
-    selectedRouteLayer.eachLayer(function(layer){
-        group.addLayer(layer);
-    });
-
-    if(group.getLayers().length > 0){
-        map.fitBounds(group.getBounds(), {
-            padding:[30,30]
-        });
-    }
+    addAllTrips(routeId);
 
 });
 
