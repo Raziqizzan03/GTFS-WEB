@@ -506,10 +506,6 @@ document
         group.addLayer(layer);
     });
 
-    stopLayer.eachLayer(function(layer){
-        group.addLayer(layer);
-    });
-
     if(group.getLayers().length > 0){
         map.fitBounds(group.getBounds(), {
             padding:[30,30]
