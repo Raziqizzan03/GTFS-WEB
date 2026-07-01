@@ -89,6 +89,10 @@ Tambah ke Peta
 Clear
 </button>
 
+<button id="zoomAll">
+Lihat Semua
+</button>
+
 </div>
 
 <div id="map"></div>
@@ -488,6 +492,31 @@ if(!this.checked){
 }
 );
 
+// =========================
+// EVENT Semua rute
+// =========================
+    
+document
+.getElementById("zoomAll")
+.addEventListener("click", function(){
+
+    let group = L.featureGroup();
+
+    selectedRouteLayer.eachLayer(function(layer){
+        group.addLayer(layer);
+    });
+
+    stopLayer.eachLayer(function(layer){
+        group.addLayer(layer);
+    });
+
+    if(group.getLayers().length > 0){
+        map.fitBounds(group.getBounds(), {
+            padding:[30,30]
+        });
+    }
+
+});
 
 </script>
 
