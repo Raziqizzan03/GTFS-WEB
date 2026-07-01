@@ -519,18 +519,19 @@ document.getElementById("showStops").checked
 
 document
 .getElementById("clearMap")
-.addEventListener(
-"click",
-function(){
+.addEventListener("click", function(){
 
-selectedRouteLayer.clearLayers();
+    // Hapus layer
+    selectedRouteLayer.clearLayers();
+    stopLayer.clearLayers();
 
-stopLayer.clearLayers();
+    // Reset Route
+    $('#routeSelect').val('').trigger('change');
 
- colorIndex = 0;
+    // Reset Trip
+    $('#tripSelect').val('').trigger('change');
 
-}
-);
+});
 
 // =========================
 // EVENT SHOW STOPS
