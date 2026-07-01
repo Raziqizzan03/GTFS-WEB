@@ -42,6 +42,17 @@ margin-top:5px;
 cursor:pointer;
 }
 
+.halte-label{
+    background:white;
+    border:1px solid #666;
+    border-radius:4px;
+    padding:2px 4px;
+    color:black;
+    font-size:11px;
+    font-weight:bold;
+    box-shadow:none;
+}
+ 
 </style>
 
 </head>
@@ -371,23 +382,26 @@ icon: halteIcon
 
 },
 
-onEachFeature:function(feature,layer){
+onEachFeature: function(feature, layer){
 
-layer.bindPopup(
+    // Tooltip permanen
+    layer.bindTooltip(
+        feature.properties.stop_sequence + " - " +
+        feature.properties.stop_name,
+        {
+            permanent: true,
+            direction: "right",
+            offset: [10, 0],
+            className: "halte-label"
+        }
+    );
 
-"<b>Nama Perhentian :</b> "
-+ feature.properties.stop_name +
- 
-"<br><b>Stop Headsign :</b> "
-+ feature.properties.stop_headsign +
-
-"<br><b>Stop sequence :</b> "
-+ feature.properties.stop_sequence
-
-//"<br><b>Departure :</b> "
-//+ feature.properties.departure_time
-
-);
+    // Popup tetap ada kalau ingin
+    layer.bindPopup(
+        "<b>Stop Sequence :</b> " + feature.properties.stop_sequence +
+        "<br><b>Halte :</b> " + feature.properties.stop_name +
+        "<br><b>Headsign :</b> " + feature.properties.stop_headsign
+    );
 
 }
 
