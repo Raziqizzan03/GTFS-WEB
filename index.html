@@ -149,6 +149,12 @@ L.control.layers(baseMaps, null, {
     position: "topright"
 }).addTo(map);
 
+var selectedRouteLayer =
+L.layerGroup().addTo(map);
+
+var stopLayer =
+L.layerGroup().addTo(map);
+
 // =========================
 // LOAD STOPS
 // =========================
