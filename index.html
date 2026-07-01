@@ -373,11 +373,12 @@ function addAllTrips(routeId){
     L.geoJSON(selectedFeatures,{
 
         style:function(feature){
+            let color = feature.properties.route_color;
 
-            return{
-                color:"#"+feature.properties.route_color,
-                weight:5,
-                opacity:1
+            return {
+                color: color ? "#" + color : "#3388ff",
+                weight: 6,
+                opacity: 1
             };
 
         },
