@@ -93,6 +93,10 @@ Clear
 Lihat Semua
 </button>
 
+<button id="downloadRoute">
+Download GeoJSON
+</button>
+
 </div>
 
 <div id="map"></div>
@@ -601,6 +605,144 @@ document
     document.getElementById("routeSelect").value;
 
     addAllTrips(routeId);
+
+});
+
+// =========================
+// DOWNLOAD GEOJSON PER TRIP
+// =========================
+
+document
+.getElementById("downloadRoute")
+.addEventListener("click", function(){
+
+    // Ambil trip yang dipilih
+    let tripId =
+        document.getElementById("tripSelect").value;
+
+    // Cek trip
+    if(tripId === ""){
+        alert("Pilih trip terlebih dahulu");
+        return;
+    }
+
+    // =========================
+    // DATA RUTE
+    // =========================
+
+    let tripFeatures =
+        window.gtfsData.features.filter(
+            f => f.properties.trip_id == tripId
+        );
+
+    // =========================
+    // DATA HALTE
+    // =========================
+
+    let stopFeatures =
+        window.stopData.features.filter(
+            f => f.properties.trip_id == tripId
+        );
+
+    // Cek data
+    if(tripFeatures.length === 0){
+        alert("Data rute untuk trip ini tidak ditemukan");
+        return;
+    }
+
+    if(stopFeatures.length === 0){
+        alert("Data halte untuk trip ini tidak ditemukan");
+        return;
+    }
+
+    // =========================
+    // GEOJSON RUTE
+    // =========================
+
+    let routeGeoJSON = {
+        type: "FeatureCollection",
+        features: tripFeatures
+    };
+
+    // =========================
+    // GEOJSON HALTE
+    // =========================
+
+    let stopGeoJSON = {
+        type: "FeatureCollection",
+        features: stopFeatures
+    };
+
+    // =========================
+    // FUNCTION DOWNLOAD
+    // =========================
+
+    function downloadGeoJSON(data, fileName){
+
+        let jsonString =
+            JSON.stringify(data, null, 2);
+
+        let blob =
+            new Blob(
+                [jsonString],
+                {
+                    type: "application/geo+json"
+                }
+            );
+
+        let url =
+            URL.createObjectURL(blob);
+
+        let a =
+            document.createElement("a");
+
+        a.href = url;
+        a.download = fileName;
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+    }
+
+    // =========================
+    // NAMA FILE
+    // =========================
+
+    let safeTripId =
+        tripId.replace(
+            /[^a-zA-Z0-9_-]/g,
+            "_"
+        );
+
+    // =========================
+    // DOWNLOAD RUTE
+    // =========================
+
+    downloadGeoJSON(
+        routeGeoJSON,
+        "Trip_" +
+        safeTripId +
+        "_Route.geojson"
+    );
+
+    // =========================
+    // DOWNLOAD HALTE
+    // =========================
+
+    setTimeout(function(){
+
+        downloadGeoJSON(
+            stopGeoJSON,
+            "Trip_" +
+            safeTripId +
+            "_Stops.geojson"
+        );
+
+    }, 500);
 
 });
 
