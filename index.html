@@ -456,6 +456,9 @@ L.layerGroup().addTo(map);
 
 let gtfsFiles = {};   // isi txt dari ZIP, keyed by nama file
 
+// ZIP GTFS dasar yang diletakkan satu folder dengan HTML
+const BASE_ZIP = "base.zip";
+
 const REQUIRED_FILES = [
     "stops.txt",
     "stop_times.txt",
@@ -473,17 +476,14 @@ function setStatus(msg, type){
 }
 
 // =========================
-// UPLOAD ZIP GTFS
+// LOAD ZIP GTFS DASAR
 // =========================
 
-document.getElementById('zipInput').addEventListener('change', function(e){
-
-    const file = e.target.files[0];
-    if(!file) return;
+function loadGTFSZip(zipSource, successMessage){
 
     setStatus("Membaca ZIP...");
 
-    JSZip.loadAsync(file).then(function(zip){
+    JSZip.loadAsync(zipSource).then(function(zip){
 
         gtfsFiles = {};
         let promises = [];
@@ -513,13 +513,45 @@ document.getElementById('zipInput').addEventListener('change', function(e){
         if(missing.length > 0){
             setStatus("ZIP terbaca, tapi kurang file: " + missing.join(", "), "error");
         } else {
-            setStatus("ZIP berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\".", "ok");
+            setStatus(successMessage, "ok");
         }
 
     }).catch(function(err){
         console.error(err);
         setStatus("Gagal membaca ZIP: " + err.message, "error");
     });
+}
+
+// Coba otomatis membaca base.zip yang berada satu folder dengan HTML.
+// Jika tidak ditemukan, user tetap bisa upload ZIP secara manual.
+fetch(BASE_ZIP)
+    .then(function(response){
+        if(!response.ok){
+            throw new Error("base.zip tidak ditemukan");
+        }
+        return response.blob();
+    })
+    .then(function(blob){
+        loadGTFSZip(blob, "ZIP base berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\".");
+    })
+    .catch(function(){
+        setStatus("Belum ada data. Upload ZIP GTFS atau pastikan base.zip ada di folder yang sama dengan HTML.");
+    });
+
+// =========================
+// UPLOAD ZIP GTFS
+// =========================
+
+document.getElementById('zipInput').addEventListener('change', function(e){
+
+    const file = e.target.files[0];
+    if(!file) return;
+
+    // ZIP yang di-upload manual akan menggantikan base.zip
+    loadGTFSZip(
+        file,
+        "ZIP berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\"."
+    );
 
 });
 
