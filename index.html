@@ -11,99 +11,377 @@ href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 
+*{
+    box-sizing:border-box;
+}
+
 body{
 margin:0;
+font-family:"Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body{
+    height:100%;
 }
 
 #map{
-height:100vh;
+height:100%;
+flex:1;
+min-width:0;
 }
 
-#panel{
-position:absolute;
-top:10px;
-left:10px;
-z-index:1000;
-background:white;
-padding:10px;
-border-radius:5px;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
+/* ---- HEADER ---- */
+#header{
+    height:58px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:0 20px;
+    background:linear-gradient(90deg, #0b1c33 0%, #10284a 100%);
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    box-shadow:0 2px 10px rgba(0,0,0,0.25);
+    position:relative;
+    z-index:1100;
+}
+
+#sidebarToggle{
+    width:38px;
+    height:38px;
+    flex-shrink:0;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.2);
+    color:#eef3fa;
+    border-radius:6px;
+    font-size:18px;
+    line-height:1;
+    cursor:pointer;
+}
+
+#sidebarToggle:hover{
+    background:rgba(255,255,255,0.08);
+}
+
+#header h1{
+    margin:0;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:#eef3fa;
+}
+
+/* ---- LAYOUT ---- */
+#layout{
+    display:flex;
+    height:calc(100% - 58px);
+}
+
+#sidebar{
+    width:300px;
+    flex-shrink:0;
+    overflow:hidden;
+    background:linear-gradient(180deg, #10284a 0%, #0b1c33 100%);
+    border-right:1px solid rgba(255,255,255,0.08);
+    transition:width .25s ease;
+}
+
+#sidebar.collapsed{
+    width:0;
+    border-right:none;
+}
+
+.sidebar-inner{
+    width:300px;
+    height:100%;
+    padding:18px;
+    overflow-y:auto;
+    box-sizing:border-box;
+    color:#c9d6e8;
+}
+
+.sidebar-inner::-webkit-scrollbar{
+    width:6px;
+}
+.sidebar-inner::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,0.15);
+    border-radius:3px;
+}
+
+.section-title{
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:0.2px;
+    color:#a9bcd6;
+    margin:0 0 4px 0;
+    padding-left:9px;
+    border-left:3px solid #3b6cd6;
+}
+
+.section-hint{
+    font-size:10.5px;
+    color:#6f83a3;
+    margin:0 0 7px 0;
+    padding-left:12px;
+    line-height:1.4;
 }
 
 select{
-width:300px;
-padding:5px;
+width:100%;
+padding:7px;
+border-radius:6px;
+margin-bottom:10px;
+}
+
+.field-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:#7f93b4;
+    font-weight:600;
+    margin-bottom:4px;
+    display:block;
+}
+
+input[type=file]{
+    width:100%;
+    font-size:11px;
+    color:#a9bcd6;
+    padding:5px 0;
+    margin-bottom:12px;
+}
+
+input[type=file]::file-selector-button{
+    background:#1d4ed8;
+    color:#fff;
+    border:none;
+    padding:6px 10px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:600;
+    margin-right:8px;
+}
+
+input[type=file]::file-selector-button:hover{
+    background:#2f5fe6;
+}
+
+.btn-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:6px;
 }
 
 button{
-width:145px;
-padding:6px;
-margin-top:5px;
+padding:8px 6px;
 cursor:pointer;
+border:1px solid rgba(255,255,255,0.14);
+border-radius:6px;
+font-size:12px;
+font-weight:600;
+letter-spacing:0.2px;
+background:transparent;
+color:#c9d6e8;
+transition:filter .15s ease, transform .05s ease, background .15s ease;
 }
 
-.halte-label{
-    background:white;
-    border:1px solid #666;
-    border-radius:4px;
-    padding:2px 4px;
-    color:black;
-    font-size:11px;
-    font-weight:bold;
-    box-shadow:none;
+button:hover{
+    filter:brightness(1.15);
 }
- 
+
+button:active{
+    transform:scale(0.97);
+}
+
+#processBtn{
+    width:100%;
+    background:#1d4ed8;
+    border-color:#1d4ed8;
+    color:#fff;
+    margin-top:4px;
+    padding:9px;
+}
+
+#addTrip{ background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+#clearMap{ background:transparent; }
+#showAll{ background:#17325c; border-color:#17325c; color:#fff; }
+#downloadRoute{ background:#17325c; border-color:#17325c; color:#fff; }
+#downloadKML{ background:#17325c; border-color:#17325c; color:#fff; grid-column: span 2; }
+
+.checkbox-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    color:#a9bcd6;
+    margin:8px 0 4px 0;
+}
+
+#statusText{
+    margin-top:10px;
+    font-size:11px;
+    color:#a9bcd6;
+    line-height:1.4;
+    padding:7px 9px;
+    background:rgba(255,255,255,0.05);
+    border-radius:6px;
+    border-left:3px solid #445b80;
+}
+
+#statusText.status-ok{
+    color:#7fe3ab;
+    background:rgba(46,125,50,0.15);
+    border-left-color:#2e9e5b;
+}
+
+#statusText.status-error{
+    color:#ff9c96;
+    background:rgba(198,40,40,0.15);
+    border-left-color:#c62828;
+}
+
+hr{
+    margin:16px 0;
+    border:none;
+    border-top:1px solid rgba(255,255,255,0.1);
+}
+
+/* ---- select2 override biar senada dashboard navy ---- */
+.select2-container--default .select2-selection--single{
+    background:#0c1f3d;
+    border:1px solid #2c4874;
+    border-radius:6px;
+    height:34px;
+    padding:2px 0;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered{
+    color:#dce6f5;
+    line-height:30px;
+    padding-left:10px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow{
+    height:32px;
+}
+.select2-dropdown{
+    background:#122b52;
+    border:1px solid #2c4874;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field{
+    background:#0c1f3d;
+    border:1px solid #2c4874;
+    color:#dce6f5;
+}
+.select2-results__option{
+    color:#c9d6e8;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected]{
+    background:#1d4ed8;
+    color:#fff;
+}
+.select2-container--default .select2-results__option[aria-selected=true]{
+    background:#17325c;
+}
+
+/* ---- tooltip hover buat rute ---- */
+.route-tooltip{
+    background:#0e223f;
+    color:#eef3fa;
+    border:1px solid #2c4874;
+    border-radius:5px;
+    padding:5px 8px;
+    font-size:11.5px;
+    line-height:1.4;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+}
+.route-tooltip::before{
+    border-top-color:#0e223f;
+}
+
+/* ---- label / tooltip halte ---- */
+.halte-label{
+    background:#0e223f;
+    border:1px solid #2c4874;
+    border-radius:4px;
+    padding:3px 6px;
+    color:#eef3fa;
+    font-size:11px;
+    font-weight:600;
+    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+}
+
 </style>
 
 </head>
 
 <body>
 
-<div id="panel">
+<div id="header">
+<button id="sidebarToggle" title="Buka/Tutup Sidebar">&#9776;</button>
+<h1>Peta Transjakarta</h1>
+</div>
 
+<div id="layout">
 
+<div id="sidebar">
+<div class="sidebar-inner">
+
+<div id="uploadSection">
+
+<p class="section-title">1. Upload ZIP GTFS (folder IBI)</p>
+<p class="section-hint">Isi ZIP: stops.txt, stop_times.txt, trips.txt, shapes.txt, routes.txt</p>
+<input type="file" id="zipInput" accept=".zip">
+
+<button id="processBtn">Proses Data</button>
+
+<div id="statusText">Belum ada data. Upload ZIP GTFS lalu klik "Proses Data".</div>
+
+</div>
+
+<hr>
+
+<span class="field-label">Route</span>
 <select id="routeSelect">
 <option value="">Semua Rute</option>
 </select>
 
-<br><br>
-
+<span class="field-label">Trip</span>
 <select id="tripSelect">
 <option value="">Pilih Trip</option>
 </select>
 
-<br><br>
-
-<label>
+<div class="checkbox-row">
 <input type="checkbox" id="showStops">
- Tampilkan Halte
-</label>
+<label for="showStops">Tampilkan Halte</label>
+</div>
 
-<br><br>
+<div class="btn-grid">
 
-<button id="addTrip">
-Tambah ke Peta
-</button>
+<button id="addTrip">Tambah ke Peta</button>
 
-<button id="clearMap">
-Clear
-</button>
+<button id="clearMap">Clear</button>
 
-<button id="showAll">
-Lihat Semua
-</button>
+<button id="showAll">Lihat Semua</button>
 
-<button id="downloadRoute">
-Download GeoJSON
-</button>
+<button id="downloadRoute">Download GeoJSON</button>
 
+<button id="downloadKML">Download KML</button>
+
+</div>
+
+</div>
 </div>
 
 <div id="map"></div>
 
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 
@@ -111,26 +389,34 @@ Download GeoJSON
 // BUAT PETA
 // =========================
 
-var map = L.map('map')
+var map = L.map('map', { zoomControl: false })
 .setView([-6.2,106.8],11);
+
+L.control.zoom({
+    position: "bottomright"
+}).addTo(map);
+
+// =========================
+// TOGGLE SIDEBAR
+// =========================
+
+document.getElementById("sidebarToggle").addEventListener("click", function(){
+
+    let sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("collapsed");
+
+    // peta perlu tau ukurannya berubah biar ga blank/kepotong
+    setTimeout(function(){
+        map.invalidateSize();
+    }, 260);
+
+});
 
 var cartoLight = L.tileLayer(
 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2rqj_1_ceecb152672cf866e0273c66',
 {
     attribution:'© OpenStreetMap © CARTO',
     maxZoom:19
-});
-
-var osm = L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-    attribution:'© OpenStreetMap'
-});
-
-var cartoDark = L.tileLayer(
-'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-{
-    attribution:'© OpenStreetMap © CARTO'
 });
 
 var esriSat = L.tileLayer(
@@ -150,8 +436,6 @@ cartoLight.addTo(map);
 
 var baseMaps = {
     "Carto Light": cartoLight,
-    "OpenStreetMap": osm,
-    "Carto Dark": cartoDark,
     "Esri Satellite": esriSat,
     "Google Street": esriStreet
 };
@@ -166,44 +450,269 @@ L.layerGroup().addTo(map);
 var stopLayer =
 L.layerGroup().addTo(map);
 
+// =========================
+// STATE UNTUK DATA MENTAH
+// =========================
+
+let gtfsFiles = {};   // isi txt dari ZIP, keyed by nama file
+
+const REQUIRED_FILES = [
+    "stops.txt",
+    "stop_times.txt",
+    "trips.txt",
+    "shapes.txt",
+    "routes.txt"
+];
+
+function setStatus(msg, type){
+    let el = document.getElementById("statusText");
+    el.innerText = msg;
+    el.classList.remove("status-ok", "status-error");
+    if(type === "ok") el.classList.add("status-ok");
+    if(type === "error") el.classList.add("status-error");
+}
 
 // =========================
-// LOAD GEOJSON RUTE
+// UPLOAD ZIP GTFS
 // =========================
 
-fetch('data/MergeRuteIBIbaru1.geojson')
-.then(r => r.json())
-.then(data => {
+document.getElementById('zipInput').addEventListener('change', function(e){
 
-window.gtfsData = data;
+    const file = e.target.files[0];
+    if(!file) return;
 
-populateRoutes(data);
+    setStatus("Membaca ZIP...");
 
-$('#routeSelect').select2({
-    width:'300px',
-    placeholder:'Cari Route'
+    JSZip.loadAsync(file).then(function(zip){
+
+        gtfsFiles = {};
+        let promises = [];
+
+        zip.forEach(function(relPath, zipEntry){
+
+            if(zipEntry.dir) return;
+
+            let baseName = relPath.split('/').pop();
+
+            if(REQUIRED_FILES.includes(baseName)){
+                promises.push(
+                    zipEntry.async("string").then(function(content){
+                        gtfsFiles[baseName] = content;
+                    })
+                );
+            }
+
+        });
+
+        return Promise.all(promises);
+
+    }).then(function(){
+
+        let missing = REQUIRED_FILES.filter(f => !gtfsFiles[f]);
+
+        if(missing.length > 0){
+            setStatus("ZIP terbaca, tapi kurang file: " + missing.join(", "), "error");
+        } else {
+            setStatus("ZIP berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\".", "ok");
+        }
+
+    }).catch(function(err){
+        console.error(err);
+        setStatus("Gagal membaca ZIP: " + err.message, "error");
+    });
+
 });
 
-populateTrips("");
+// =========================
+// TOMBOL PROSES DATA
+// =========================
+
+document.getElementById('processBtn').addEventListener('click', function(){
+
+    let missing = REQUIRED_FILES.filter(f => !gtfsFiles[f]);
+
+    if(missing.length > 0){
+        alert("Upload ZIP GTFS terlebih dahulu. Kurang file: " + missing.join(", "));
+        return;
+    }
+
+    setStatus("Memproses data...");
+
+    // kasih jeda dikit biar UI sempat update sebelum proses berat
+    setTimeout(processGTFSData, 50);
 
 });
 
+function parseCSV(text){
+    let result = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true
+    });
+    return result.data;
+}
+
 // =========================
-// LOAD STOPS
+// OLAH DATA -> GEOJSON (pengganti pandas/geopandas)
 // =========================
 
-fetch('data/MergeStopsIBIBaru.geojson')
-.then(r => r.json())
-.then(data => {
+function processGTFSData(){
 
-window.stopData = data;
+    try{
 
-console.log(
-"Jumlah halte:",
-data.features.length
-);
+        let stops = parseCSV(gtfsFiles["stops.txt"]);
+        let stopTimes = parseCSV(gtfsFiles["stop_times.txt"]);
+        let trips = parseCSV(gtfsFiles["trips.txt"]);
+        let shapes = parseCSV(gtfsFiles["shapes.txt"]);
+        let routes = parseCSV(gtfsFiles["routes.txt"]);
 
-});
+        // ---- index stops by stop_id ----
+        let stopIndex = {};
+        stops.forEach(function(s){
+            stopIndex[String(s.stop_id).trim()] = s;
+        });
+
+        // ---- gabung stop_times + stops -> titik halte ----
+        let stopFeatures = [];
+
+        stopTimes.forEach(function(st){
+
+            let stopId = String(st.stop_id).trim();
+            let s = stopIndex[stopId];
+
+            let lat = s ? parseFloat(s.stop_lat) : NaN;
+            let lon = s ? parseFloat(s.stop_lon) : NaN;
+
+            if(isNaN(lat) || isNaN(lon)) return;
+
+            let props = Object.assign({}, st, {
+                stop_name: s ? s.stop_name : null,
+                stop_lat: lat,
+                stop_lon: lon
+            });
+
+            stopFeatures.push({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [lon, lat] },
+                properties: props
+            });
+
+        });
+
+        // ---- index routes by route_id ----
+        let routeIndex = {};
+        routes.forEach(function(r){
+            routeIndex[String(r.route_id).trim()] = r;
+        });
+
+        // ---- gabung trips + routes (dtgabung) ----
+        let tripIndex = {};
+
+        trips.forEach(function(t){
+
+            let tripId = String(t.trip_id).trim();
+            let routeId = String(t.route_id).trim();
+            let r = routeIndex[routeId] || {};
+
+            tripIndex[tripId] = {
+                trip_id: tripId,
+                route_id: routeId,
+                trip_short_name: t.trip_short_name,
+                service_id: t.service_id,
+                shape_id: String(t.shape_id).trim(),
+                route_long_name: r.route_long_name || null,
+                route_desc: r.route_desc || null,
+                route_color: r.route_color || null,
+                route_text_color: r.route_text_color || null
+            };
+
+        });
+
+        // ---- kelompokkan shapes per shape_id, urut shape_pt_sequence ----
+        let shapeGroups = {};
+
+        shapes.forEach(function(pt){
+
+            let shapeId = String(pt.shape_id).trim();
+
+            if(!shapeGroups[shapeId]) shapeGroups[shapeId] = [];
+
+            shapeGroups[shapeId].push({
+                seq: parseFloat(pt.shape_pt_sequence),
+                lat: parseFloat(pt.shape_pt_lat),
+                lon: parseFloat(pt.shape_pt_lon)
+            });
+
+        });
+
+        let shapeLines = {};
+
+        Object.keys(shapeGroups).forEach(function(shapeId){
+
+            let pts = shapeGroups[shapeId].sort(function(a,b){ return a.seq - b.seq; });
+
+            if(pts.length >= 2){
+                shapeLines[shapeId] = pts.map(function(p){ return [p.lon, p.lat]; });
+            }
+
+        });
+
+        // ---- gabung shape line ke tiap trip (1 fitur per trip_id) ----
+        let routeFeatures = [];
+
+        Object.keys(tripIndex).forEach(function(tripId){
+
+            let info = tripIndex[tripId];
+            let coords = shapeLines[info.shape_id];
+
+            if(!coords) return;
+
+            routeFeatures.push({
+                type: "Feature",
+                geometry: { type: "LineString", coordinates: coords },
+                properties: info
+            });
+
+        });
+
+        routeFeatures.sort(function(a,b){
+            return String(a.properties.route_id).localeCompare(String(b.properties.route_id));
+        });
+
+        window.gtfsData = { type: "FeatureCollection", features: routeFeatures };
+        window.stopData = { type: "FeatureCollection", features: stopFeatures };
+
+        // ---- reset & isi ulang dropdown ----
+
+        selectedRouteLayer.clearLayers();
+        stopLayer.clearLayers();
+
+        document.getElementById("routeSelect").innerHTML = '<option value="">Semua Rute</option>';
+
+        populateRoutes(window.gtfsData);
+
+        if ($('#routeSelect').hasClass("select2-hidden-accessible")){
+            $('#routeSelect').select2('destroy');
+        }
+
+        $('#routeSelect').select2({
+            width: '300px',
+            placeholder: 'Cari Route'
+        });
+
+        populateTrips("");
+
+        setStatus(
+            "Data siap: " + routeFeatures.length + " trip rute, " +
+            stopFeatures.length + " baris halte.",
+            "ok"
+        );
+
+    } catch(err){
+        console.error(err);
+        setStatus("Terjadi error saat memproses data: " + err.message, "error");
+    }
+
+}
 
 // =========================
 // DROPDOWN ROUTE
@@ -260,6 +769,11 @@ function populateTrips(routeId){
     tripSelect.innerHTML =
         '<option value="">Pilih Trip</option>';
 
+    if(!window.gtfsData){
+        $('#tripSelect').select2({ width:'300px' });
+        return;
+    }
+
     let trips = {};
 
     let filteredFeatures =
@@ -268,11 +782,6 @@ function populateTrips(routeId){
             routeId === "" ||
             f.properties.route_id == routeId
         );
-
-    console.log(
-        "jumlah feature:",
-        filteredFeatures.length
-    );
 
     filteredFeatures.forEach(f=>{
 
@@ -303,16 +812,13 @@ function populateTrips(routeId){
         width:'300px'
     });
 
-    $('#routeSelect').on('change', function () {
+}
 
+// Route select cuma dipasang sekali (bukan di dalam populateTrips)
+$('#routeSelect').on('change', function () {
     let routeId = $(this).val();
-
-    console.log("route =", routeId);
-
     populateTrips(routeId);
 });
-
-}
 
 // =========================
 // TAMBAH RUTE KE PETA
@@ -373,13 +879,31 @@ feature.properties.trip_id +
 "<br><b>Nama :</b> " +
 feature.properties.trip_short_name +
 
- "<br><b>KM_Baku :</b> " +
-feature.properties.KM_baku +
-
 "<br><b>Jenis :</b> " +
 feature.properties.route_desc
 
 );
+
+// tooltip ngikutin kursor pas hover di garis
+layer.bindTooltip(
+    "<b>Trip " + feature.properties.trip_id + "</b><br>" +
+    feature.properties.route_id + " - " + feature.properties.trip_short_name,
+    {
+        sticky: true,
+        direction: "top",
+        className: "route-tooltip"
+    }
+);
+
+// highlight garis pas kursor diarahkan
+layer.on("mouseover", function(){
+    this.setStyle({ weight: 10 });
+    this.bringToFront();
+});
+
+layer.on("mouseout", function(){
+    this.setStyle({ weight: 6 });
+});
 
 }
 
@@ -437,12 +961,34 @@ function addAllTrips(routeId){
                 feature.properties.trip_id +
 
                 "<br><b>Nama :</b> " +
-                feature.properties.trip_short_name +
-
-                "<br><b>KM :</b> " +
-                feature.properties.KM_baku
+                feature.properties.trip_short_name
 
             );
+
+            // tooltip ngikutin kursor pas hover di garis
+            layer.bindTooltip(
+                "<b>Trip " + feature.properties.trip_id + "</b><br>" +
+                feature.properties.route_id + " - " + feature.properties.trip_short_name,
+                {
+                    sticky: true,
+                    direction: "top",
+                    className: "route-tooltip"
+                }
+            );
+
+            // highlight garis pas kursor diarahkan, warna asli dibalikin pas keluar
+            let originalColor = feature.properties.route_color
+                ? "#" + feature.properties.route_color
+                : "#3388ff";
+
+            layer.on("mouseover", function(){
+                this.setStyle({ weight: 10, color: "#000000" });
+                this.bringToFront();
+            });
+
+            layer.on("mouseout", function(){
+                this.setStyle({ weight: 6, color: originalColor });
+            });
 
         }
 
@@ -461,7 +1007,13 @@ var halteIcon = L.icon({
     iconSize: [25, 25],
     iconAnchor: [12, 12]
 });
- 
+
+var halteIconHover = L.icon({
+    iconUrl: 'icon/halte.png',
+    iconSize: [34, 34],
+    iconAnchor: [17, 17]
+});
+
 function addStopsToMap(tripId){
 
 let stopFeatures =
@@ -488,24 +1040,32 @@ icon: halteIcon
 
 onEachFeature: function(feature, layer){
 
-    // Tooltip permanen
+    // Tooltip cuma muncul pas kursor diarahkan ke halte
     layer.bindTooltip(
-        feature.properties.stop_sequence + " - " +
-        feature.properties.stop_name,
+        "<b>" + feature.properties.stop_sequence + ". " + feature.properties.stop_name + "</b>" +
+        (feature.properties.stop_headsign ? "<br>Headsign: " + feature.properties.stop_headsign : ""),
         {
-            permanent: true,
-            direction: "right",
-            offset: [10, 0],
+            direction: "top",
+            offset: [0, -14],
             className: "halte-label"
         }
     );
 
-    // Popup tetap ada kalau ingin
+    // Popup tetap ada kalau mau lihat detail lebih lama (klik)
     layer.bindPopup(
         "<b>Stop Sequence :</b> " + feature.properties.stop_sequence +
         "<br><b>Halte :</b> " + feature.properties.stop_name +
         "<br><b>Headsign :</b> " + feature.properties.stop_headsign
     );
+
+    // marker membesar pas di-hover biar keliatan jelas titiknya
+    layer.on("mouseover", function(){
+        this.setIcon(halteIconHover);
+    });
+
+    layer.on("mouseout", function(){
+        this.setIcon(halteIcon);
+    });
 
 }
 
@@ -516,12 +1076,6 @@ onEachFeature: function(feature, layer){
 }
 
 // =========================
-// EVENT ROUTE
-// =========================
-
-
-
-// =========================
 // EVENT TAMBAH
 // =========================
 
@@ -530,6 +1084,11 @@ document
 .addEventListener(
 "click",
 function(){
+
+if(!window.gtfsData){
+    alert("Upload dan proses data GTFS terlebih dahulu");
+    return;
+}
 
 let tripId =
 document
@@ -601,6 +1160,11 @@ document
 .getElementById("showAll")
 .addEventListener("click",function(){
 
+    if(!window.gtfsData){
+        alert("Upload dan proses data GTFS terlebih dahulu");
+        return;
+    }
+
     let routeId =
     document.getElementById("routeSelect").value;
 
@@ -615,6 +1179,11 @@ document
 document
 .getElementById("downloadRoute")
 .addEventListener("click", function(){
+
+    if(!window.gtfsData || !window.stopData){
+        alert("Upload dan proses data GTFS terlebih dahulu");
+        return;
+    }
 
     // Ambil trip yang dipilih
     let tripId =
@@ -743,6 +1312,142 @@ document
         );
 
     }, 500);
+
+});
+
+// =========================
+// DOWNLOAD KML PER TRIP
+// =========================
+
+function escapeXml(str){
+    if(str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+// KML pakai format warna aabbggrr, kebalikan dari hex RRGGBB biasa
+function hexToKmlColor(hex, alpha){
+    alpha = alpha || "ff";
+    if(!hex) return alpha + "0000ff";
+    hex = String(hex).replace("#", "");
+    if(hex.length !== 6) return alpha + "0000ff";
+    let r = hex.substring(0,2);
+    let g = hex.substring(2,4);
+    let b = hex.substring(4,6);
+    return alpha + b + g + r;
+}
+
+function buildTripKML(routeFeatures, stopFeatures, tripId){
+
+    let placemarks = "";
+
+    routeFeatures.forEach(function(f){
+
+        let coords = f.geometry.coordinates
+            .map(function(c){ return c[0] + "," + c[1] + ",0"; })
+            .join(" ");
+
+        let color = hexToKmlColor(f.properties.route_color, "ff");
+
+        placemarks += "\n" +
+        "<Placemark>" +
+        "<name>" + escapeXml(f.properties.trip_short_name || f.properties.trip_id) + "</name>" +
+        "<description><![CDATA[" +
+        "Route: " + escapeXml(f.properties.route_id) + "<br/>" +
+        "Trip: " + escapeXml(f.properties.trip_id) + "<br/>" +
+        "Jenis: " + escapeXml(f.properties.route_desc) +
+        "]]></description>" +
+        "<Style><LineStyle><color>" + color + "</color><width>4</width></LineStyle></Style>" +
+        "<LineString><tessellate>1</tessellate><coordinates>" + coords + "</coordinates></LineString>" +
+        "</Placemark>";
+
+    });
+
+    stopFeatures.forEach(function(f){
+
+        let lon = f.geometry.coordinates[0];
+        let lat = f.geometry.coordinates[1];
+
+        placemarks += "\n" +
+        "<Placemark>" +
+        "<name>" + escapeXml(f.properties.stop_sequence) + ". " + escapeXml(f.properties.stop_name) + "</name>" +
+        "<description><![CDATA[" +
+        "Stop Sequence: " + escapeXml(f.properties.stop_sequence) + "<br/>" +
+        "Headsign: " + escapeXml(f.properties.stop_headsign) +
+        "]]></description>" +
+        "<Point><coordinates>" + lon + "," + lat + ",0</coordinates></Point>" +
+        "</Placemark>";
+
+    });
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
+        "<Document>\n" +
+        "<name>Trip " + escapeXml(tripId) + "</name>" +
+        placemarks +
+        "\n</Document>\n</kml>"
+    );
+
+}
+
+function downloadTextFile(content, fileName, mimeType){
+
+    let blob = new Blob([content], { type: mimeType });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+
+    a.href = url;
+    a.download = fileName;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+}
+
+document
+.getElementById("downloadKML")
+.addEventListener("click", function(){
+
+    if(!window.gtfsData || !window.stopData){
+        alert("Upload dan proses data GTFS terlebih dahulu");
+        return;
+    }
+
+    let tripId = document.getElementById("tripSelect").value;
+
+    if(tripId === ""){
+        alert("Pilih trip terlebih dahulu");
+        return;
+    }
+
+    let tripFeatures =
+        window.gtfsData.features.filter(f => f.properties.trip_id == tripId);
+
+    let stopFeatures =
+        window.stopData.features.filter(f => f.properties.trip_id == tripId);
+
+    if(tripFeatures.length === 0){
+        alert("Data rute untuk trip ini tidak ditemukan");
+        return;
+    }
+
+    let kml = buildTripKML(tripFeatures, stopFeatures, tripId);
+
+    let safeTripId = tripId.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    downloadTextFile(
+        kml,
+        "Trip_" + safeTripId + ".kml",
+        "application/vnd.google-earth.kml+xml"
+    );
 
 });
 
