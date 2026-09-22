@@ -474,8 +474,19 @@ L.layerGroup().addTo(map);
 
 let gtfsFiles = {};   // isi txt dari ZIP, keyed by nama file
 
-// ZIP GTFS dasar yang diletakkan satu folder dengan HTML
+// ZIP fallback kalau auto-detect GitHub API gagal (masih dicoba, nama tetap)
 const BASE_ZIP = "base.zip";
+
+// --- KONFIG GITHUB (buat auto-detect nama ZIP apa pun di repo) ---
+// Biarkan null biar ditebak otomatis dari URL halaman ini.
+// Kalau tebakannya salah (misal repo dengan struktur folder nested/custom domain),
+// isi manual di sini, contoh:
+//   const GITHUB_OWNER  = "raziqizzan";
+//   const GITHUB_REPO   = "peta-transjakarta";
+//   const GITHUB_FOLDER = "";   // "" kalau HTML & ZIP ada di root repo
+const GITHUB_OWNER  = null;
+const GITHUB_REPO   = null;
+const GITHUB_FOLDER = null;
 
 // Nama file daftar trip_id rute reguler DI DALAM ZIP (base.zip maupun upload manual)
 const ROUTE_LIST_FILE = "route_list.txt";
@@ -543,22 +554,30 @@ function loadGTFSZip(zipSource, successMessage){
         gtfsFiles = {};
         regulerTripIds = null; // reset, diisi ulang kalau route_list.txt ketemu di dalam ZIP ini
         let promises = [];
+        let allEntryNames = [];
 
         zip.forEach(function(relPath, zipEntry){
 
             if(zipEntry.dir) return;
 
-            let baseName = relPath.split('/').pop();
+            allEntryNames.push(relPath);
 
-            if(REQUIRED_FILES.includes(baseName)){
+            // handle path pake forward slash (Mac/Linux/GitHub) MAUPUN backslash (zip bikinan Windows)
+            let baseName = relPath.split(/[\/\\]/).pop();
+            let baseNameLower = baseName.toLowerCase();
+
+            // cocokkan case-insensitive, tapi disimpan pakai nama baku di REQUIRED_FILES
+            let matchedRequired = REQUIRED_FILES.find(f => f.toLowerCase() === baseNameLower);
+
+            if(matchedRequired){
                 promises.push(
                     zipEntry.async("string").then(function(content){
-                        gtfsFiles[baseName] = content;
+                        gtfsFiles[matchedRequired] = content;
                     })
                 );
             }
 
-            if(baseName === ROUTE_LIST_FILE){
+            if(baseNameLower === ROUTE_LIST_FILE.toLowerCase()){
                 promises.push(
                     zipEntry.async("string").then(function(content){
                         regulerTripIds = parseRouteListText(content);
@@ -568,6 +587,8 @@ function loadGTFSZip(zipSource, successMessage){
 
         });
 
+        console.log("Isi ZIP (" + allEntryNames.length + " entri):", allEntryNames);
+
         return Promise.all(promises);
 
     }).then(function(){
@@ -575,7 +596,11 @@ function loadGTFSZip(zipSource, successMessage){
         let missing = REQUIRED_FILES.filter(f => !gtfsFiles[f]);
 
         if(missing.length > 0){
-            setStatus("ZIP terbaca, tapi kurang file: " + missing.join(", "), "error");
+            setStatus(
+                "ZIP terbaca, tapi kurang file: " + missing.join(", ") +
+                ". Cek console (F12) untuk lihat isi ZIP yang kebaca.",
+                "error"
+            );
         } else {
 
             let note = regulerTripIds
@@ -591,21 +616,130 @@ function loadGTFSZip(zipSource, successMessage){
     });
 }
 
-// Coba otomatis membaca base.zip yang berada satu folder dengan HTML.
-// Jika tidak ditemukan, user tetap bisa upload ZIP secara manual.
-fetch(BASE_ZIP)
-    .then(function(response){
-        if(!response.ok){
-            throw new Error("base.zip tidak ditemukan");
-        }
-        return response.blob();
-    })
-    .then(function(blob){
-        loadGTFSZip(blob, "ZIP base berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\".");
-    })
-    .catch(function(){
-        setStatus("Belum ada data. Upload ZIP GTFS atau pastikan base.zip ada di folder yang sama dengan HTML.");
-    });
+// =========================
+// AUTO-DETECT ZIP DI REPO GITHUB (nama file bebas)
+// =========================
+
+function guessGithubRepoInfo(){
+
+    let host = window.location.hostname;
+
+    // cuma jalan kalau di-hosting di GitHub Pages
+    if(host.toLowerCase().indexOf("github.io") === -1){
+        return null;
+    }
+
+    let owner = GITHUB_OWNER || host.split(".")[0];
+
+    let pathParts = window.location.pathname.split("/").filter(Boolean);
+
+    // buang nama file HTML-nya sendiri di akhir path (kalau ada)
+    if(pathParts.length > 0 && pathParts[pathParts.length - 1].indexOf(".") !== -1){
+        pathParts.pop();
+    }
+
+    let repo, folderPath;
+
+    if(GITHUB_REPO){
+        repo = GITHUB_REPO;
+        folderPath = (GITHUB_FOLDER !== null) ? GITHUB_FOLDER : pathParts.join("/");
+    } else if(pathParts.length > 0){
+        // project page: username.github.io/nama-repo/...
+        repo = pathParts[0];
+        folderPath = (GITHUB_FOLDER !== null) ? GITHUB_FOLDER : pathParts.slice(1).join("/");
+    } else {
+        // user/organization page: username.github.io (repo-nya sendiri bernama itu)
+        repo = host;
+        folderPath = (GITHUB_FOLDER !== null) ? GITHUB_FOLDER : "";
+    }
+
+    return { owner: owner, repo: repo, folderPath: folderPath };
+
+}
+
+function findZipViaGithubAPI(){
+
+    let info = guessGithubRepoInfo();
+
+    if(!info){
+        return Promise.reject(new Error("halaman ini bukan di-hosting di GitHub Pages"));
+    }
+
+    let apiUrl = "https://api.github.com/repos/" + info.owner + "/" + info.repo +
+        "/contents/" + info.folderPath;
+
+    return fetch(apiUrl)
+        .then(function(res){
+            if(!res.ok){
+                throw new Error("gagal akses GitHub API (HTTP " + res.status + ")");
+            }
+            return res.json();
+        })
+        .then(function(items){
+
+            if(!Array.isArray(items)){
+                throw new Error("folder repo tidak ditemukan / bukan direktori");
+            }
+
+            let zipItem = items.find(function(item){
+                return item.type === "file" && item.name.toLowerCase().endsWith(".zip");
+            });
+
+            if(!zipItem){
+                throw new Error("tidak ada file .zip di folder repo ini");
+            }
+
+            return zipItem;
+
+        });
+
+}
+
+function tryAutoLoadZip(){
+
+    findZipViaGithubAPI()
+        .then(function(zipItem){
+
+            setStatus("Menemukan \"" + zipItem.name + "\" di repo, mengunduh...");
+
+            return fetch(zipItem.download_url).then(function(res){
+                if(!res.ok){
+                    throw new Error("gagal mengunduh " + zipItem.name);
+                }
+                return res.blob();
+            }).then(function(blob){
+                loadGTFSZip(
+                    blob,
+                    "ZIP \"" + zipItem.name + "\" otomatis ditemukan dari repo GitHub. Klik \"Proses Data\"."
+                );
+            });
+
+        })
+        .catch(function(err){
+
+            console.warn("Auto-detect via GitHub API gagal:", err.message);
+
+            // fallback: coba nama tetap base.zip (misal buat hosting selain GitHub Pages)
+            fetch(BASE_ZIP)
+                .then(function(response){
+                    if(!response.ok){
+                        throw new Error("base.zip tidak ditemukan (HTTP " + response.status + ")");
+                    }
+                    return response.blob();
+                })
+                .then(function(blob){
+                    loadGTFSZip(blob, "ZIP base.zip berhasil dibaca. Klik \"Proses Data\".");
+                })
+                .catch(function(err2){
+                    console.warn("Auto-load base.zip juga gagal:", err2.message);
+                    setStatus("Belum ada data. Upload ZIP GTFS secara manual lewat tombol di atas.");
+                });
+
+        });
+
+}
+
+tryAutoLoadZip();
 
 // =========================
 // UPLOAD ZIP GTFS
@@ -619,7 +753,7 @@ document.getElementById('zipInput').addEventListener('change', function(e){
     // ZIP yang di-upload manual akan menggantikan base.zip
     loadGTFSZip(
         file,
-        "ZIP berhasil dibaca, 6 file GTFS ditemukan. Klik \"Proses Data\"."
+        "ZIP berhasil dibaca. Klik \"Proses Data\"."
     );
 
 });
