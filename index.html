@@ -3,6 +3,8 @@
 
 <head>
 <meta charset="utf-8">
+    
+<link rel="icon" type="image/jpeg" href="logo_dept.jpeg">
 
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -209,6 +211,19 @@ button:active{
 #downloadRoute{ background:#17325c; border-color:#17325c; color:#fff; }
 #downloadKML{ background:#17325c; border-color:#17325c; color:#fff; grid-column: span 2; }
 
+#filterReguler{
+    width:100%;
+    margin-top:2px;
+    margin-bottom:2px;
+    background:transparent;
+}
+
+#filterReguler.active{
+    background:#1d4ed8;
+    border-color:#1d4ed8;
+    color:#fff;
+}
+
 .checkbox-row{
     display:flex;
     align-items:center;
@@ -328,8 +343,8 @@ hr{
 
 <div id="uploadSection">
 
-<p class="section-title">1. Upload ZIP GTFS (folder IBI)</p>
-<p class="section-hint">Isi ZIP: stops.txt, stop_times.txt, trips.txt, shapes.txt, routes.txt</p>
+<p class="section-title">Upload ZIP GTFS</p>
+<p class="section-hint">Isi ZIP: stops.txt, stop_times.txt, trips.txt, shapes.txt, routes.txt, route_list</p>
 <input type="file" id="zipInput" accept=".zip">
 
 <button id="processBtn">Proses Data</button>
@@ -354,6 +369,9 @@ hr{
 <input type="checkbox" id="showStops">
 <label for="showStops">Tampilkan Halte</label>
 </div>
+
+<button id="filterReguler">Filter Rute Reguler: OFF</button>
+<p class="section-hint" style="margin-top:2px;">Hanya tampilkan trip reguler</p>
 
 <div class="btn-grid">
 
@@ -459,6 +477,12 @@ let gtfsFiles = {};   // isi txt dari ZIP, keyed by nama file
 // ZIP GTFS dasar yang diletakkan satu folder dengan HTML
 const BASE_ZIP = "base.zip";
 
+// Nama file daftar trip_id rute reguler DI DALAM ZIP (base.zip maupun upload manual)
+const ROUTE_LIST_FILE = "route_list.txt";
+
+let regulerTripIds = null;     // null = belum termuat, kalau sudah jadi Set berisi trip_id
+let regulerFilterActive = false;
+
 const REQUIRED_FILES = [
     "stops.txt",
     "stop_times.txt",
@@ -476,7 +500,38 @@ function setStatus(msg, type){
 }
 
 // =========================
-// LOAD ZIP GTFS DASAR
+// PARSE DAFTAR RUTE REGULER
+// =========================
+
+function parseRouteListText(text){
+
+    let lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+
+    if(lines.length === 0) return new Set();
+
+    let firstLine = lines[0].toLowerCase();
+
+    // kalau baris pertama header CSV yang punya kolom trip_id, parse sebagai CSV
+    if(firstLine.indexOf("trip_id") !== -1 && firstLine.indexOf(",") !== -1){
+
+        let rows = Papa.parse(text, { header:true, skipEmptyLines:true }).data;
+
+        let ids = rows
+            .map(r => r.trip_id)
+            .filter(v => v !== undefined && v !== null && v !== "")
+            .map(v => String(v).trim());
+
+        return new Set(ids);
+
+    }
+
+    // kalau bukan, anggap tiap baris langsung trip_id
+    return new Set(lines);
+
+}
+
+// =========================
+// LOAD ZIP GTFS (base.zip ATAU upload manual)
 // =========================
 
 function loadGTFSZip(zipSource, successMessage){
@@ -486,6 +541,7 @@ function loadGTFSZip(zipSource, successMessage){
     JSZip.loadAsync(zipSource).then(function(zip){
 
         gtfsFiles = {};
+        regulerTripIds = null; // reset, diisi ulang kalau route_list.txt ketemu di dalam ZIP ini
         let promises = [];
 
         zip.forEach(function(relPath, zipEntry){
@@ -502,6 +558,14 @@ function loadGTFSZip(zipSource, successMessage){
                 );
             }
 
+            if(baseName === ROUTE_LIST_FILE){
+                promises.push(
+                    zipEntry.async("string").then(function(content){
+                        regulerTripIds = parseRouteListText(content);
+                    })
+                );
+            }
+
         });
 
         return Promise.all(promises);
@@ -513,7 +577,12 @@ function loadGTFSZip(zipSource, successMessage){
         if(missing.length > 0){
             setStatus("ZIP terbaca, tapi kurang file: " + missing.join(", "), "error");
         } else {
-            setStatus(successMessage, "ok");
+
+            let note = regulerTripIds
+                ? (" (route_list.txt: " + regulerTripIds.size + " trip reguler)")
+                : " (route_list.txt tidak ada di ZIP ini)";
+
+            setStatus(successMessage + note, "ok");
         }
 
     }).catch(function(err){
@@ -550,7 +619,7 @@ document.getElementById('zipInput').addEventListener('change', function(e){
     // ZIP yang di-upload manual akan menggantikan base.zip
     loadGTFSZip(
         file,
-        "ZIP berhasil dibaca, 5 file GTFS ditemukan. Klik \"Proses Data\"."
+        "ZIP berhasil dibaca, 6 file GTFS ditemukan. Klik \"Proses Data\"."
     );
 
 });
@@ -759,6 +828,10 @@ let routes = {};
 
 data.features.forEach(f=>{
 
+if(regulerFilterActive && regulerTripIds && !regulerTripIds.has(String(f.properties.trip_id))){
+    return;
+}
+
 routes[
 f.properties.route_id
 ] = f.properties.route_long_name;
@@ -811,8 +884,8 @@ function populateTrips(routeId){
     let filteredFeatures =
         window.gtfsData.features.filter(
             f =>
-            routeId === "" ||
-            f.properties.route_id == routeId
+            (routeId === "" || f.properties.route_id == routeId) &&
+            (!regulerFilterActive || !regulerTripIds || regulerTripIds.has(String(f.properties.trip_id)))
         );
 
     filteredFeatures.forEach(f=>{
@@ -919,7 +992,7 @@ feature.properties.route_desc
 // tooltip ngikutin kursor pas hover di garis
 layer.bindTooltip(
     "<b>Trip " + feature.properties.trip_id + "</b><br>" +
-    feature.properties.route_id + " - " + feature.properties.trip_short_name,
+    feature.properties.trip_short_name + "</b><br>" + feature.properties.route_desc,
     {
         sticky: true,
         direction: "top",
@@ -959,9 +1032,11 @@ function addAllTrips(routeId){
     let selectedFeatures =
         window.gtfsData.features.filter(f =>
 
-            routeId == "" ||
+            (routeId == "" ||
 
-            f.properties.route_id == routeId
+            f.properties.route_id == routeId) &&
+
+            (!regulerFilterActive || !regulerTripIds || regulerTripIds.has(String(f.properties.trip_id)))
 
         );
 
@@ -1183,6 +1258,47 @@ if(!this.checked){
 
 }
 );
+
+// =========================
+// EVENT FILTER RUTE REGULER
+// =========================
+
+document
+.getElementById("filterReguler")
+.addEventListener("click", function(){
+
+    if(!regulerTripIds){
+        alert("route_list.txt tidak ditemukan di dalam ZIP yang sedang dipakai.");
+        return;
+    }
+
+    regulerFilterActive = !regulerFilterActive;
+
+    this.classList.toggle("active", regulerFilterActive);
+    this.innerText = regulerFilterActive
+        ? "Filter Rute Reguler: ON"
+        : "Filter Rute Reguler: OFF";
+
+    // refresh dropdown Route & Trip biar ikut filter terbaru
+    if(window.gtfsData){
+
+        document.getElementById("routeSelect").innerHTML = '<option value="">Semua Rute</option>';
+        populateRoutes(window.gtfsData);
+
+        if ($('#routeSelect').hasClass("select2-hidden-accessible")){
+            $('#routeSelect').select2('destroy');
+        }
+
+        $('#routeSelect').select2({
+            width: '300px',
+            placeholder: 'Cari Route'
+        });
+
+        populateTrips(document.getElementById("routeSelect").value);
+
+    }
+
+});
 
 // =========================
 // EVENT Semua rute
